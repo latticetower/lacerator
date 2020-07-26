@@ -1,2 +1,2 @@
 # lacerator
-Bobbin lace pattern procedural generation application
+Bobbin lace pattern procedural generator app

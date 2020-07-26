@@ -1,2 +1,3 @@
 bottle==0.12.18
 numpy==1.18.1
+gunicorn==19.9.0
