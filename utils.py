@@ -2,7 +2,8 @@ from svgutils.transform import fromfile
 from svgutils.transform import SVGFigure, GroupElement
 from svgutils.templates import VerticalLayout, ColumnLayout
 from PIL import Image
-
+import numpy as np
+import hashlib
 from wfc import *
 
 
@@ -42,7 +43,18 @@ def make_pattern_from_fragments(h=10, w=10):
     vocab = get_fragment_vocab()
     print(get_fragment_vocab)
     print(h, w)
-    pass
+    lines = [
+        np.hstack([ np.asarray(vocab.get(x, "G")) for x in row ])
+        for row in output
+    ]
+    arr = np.vstack(lines)
+    fileinfo = "\n".join(["".join(row) for row in output])
+    name = hashlib.sha224(fileinfo.encode()).hexdigest()
+    if not os.path.exists("images"):
+        os.makedirs("images")
+    path = f"images/{name}.png"
+    Image.fromarray(arr).save(path)
+    return path
 
 
 def make_pattern_measured():
