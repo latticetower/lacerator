@@ -2,4 +2,4 @@ bottle==0.12.18
 numpy==1.18.1
 gunicorn==19.9.0
 
-git@github.com:btel/svg_utils.git
+-e https://github.com/btel/svg_utils.git

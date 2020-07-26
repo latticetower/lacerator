@@ -1,6 +1,26 @@
+from svgutils.transform import fromfile
+from svgutils.transform import SVGFigure, GroupElement
+from svgutils.templates import VerticalLayout, ColumnLayout
+
+
 from wfc import *
 
 
+def get_fragment_vocab():
+    vocab = {
+        "A": fromfile("assets/"),
+        #"B",
+        #"C",
+        #"D",
+        #"E",
+        #"F",
+        #"G",
+        #"H",
+        ##"I",
+        #"J"
+    }
+    return vocab
+    
 def make_pattern_from_fragments(h=10, w=10):
     input_matrix3 = """
     AFBAFBAFBAFB
@@ -25,7 +45,11 @@ def make_pattern_from_fragments(h=10, w=10):
     compatibility_oracle = CompatibilityOracle(compatibilities)
     model = Model((h, w), weights, compatibility_oracle)
     output = model.run()
-    print(output)
+    h = len(output)
+    w = len(output[0])
+    vocab = get_fragment_vocab()
+    print(get_fragment_vocab)
+    print(h, w)
     pass
 
 
