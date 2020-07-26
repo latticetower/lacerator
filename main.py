@@ -1,5 +1,5 @@
 from bottle import route, run, template
-import sys
+import os
 from wfc import *
 
 @route('/')
