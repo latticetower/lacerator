@@ -1,7 +1,7 @@
 # Implementation of WFC algorithm is taken from https://github.com/robert/wavefunction-collapse
 import random
 import math
-
+import numpy as np
 
 UP = (0, 1)
 LEFT = (-1, 0)
@@ -86,7 +86,6 @@ class Wavefunction(object):
         this method raises an exception.
         """
         opts = self.get(co_ords)
-        print(co_ords, opts)
         assert(len(opts) == 1)
         return next(iter(opts))
 
@@ -130,7 +129,6 @@ class Wavefunction(object):
         """
         for x, row in enumerate(self.coefficients):
             for y, sq in enumerate(row):
-                #print(x, y, sq)
                 if len(sq) > 1:
                     return False
 
@@ -149,14 +147,15 @@ class Wavefunction(object):
         valid_weights = {tile: weight for tile, weight in self.weights.items() if tile in opts}
 
         total_weights = sum(valid_weights.values())
-        rnd = random.random() * total_weights
-
-        chosen = None
-        for tile, weight in valid_weights.items():
-            rnd -= weight
-            if rnd < 0:
-                chosen = tile
-                break
+        # rnd = random.random() * total_weights
+        # 
+        # chosen = None
+        # for tile, weight in valid_weights.items():
+        #     rnd -= weight
+        #     if rnd < 0:
+        #         chosen = tile
+        #         break
+        chosen = np.random.choice(list(valid_weights.keys()))
 
         self.coefficients[x][y] = set([chosen])
 
@@ -179,7 +178,6 @@ class Model(object):
     def __init__(self, output_size, weights, compatibility_oracle):
         self.output_size = output_size
         self.compatibility_oracle = compatibility_oracle
-
         self.wavefunction = Wavefunction.mk(output_size, weights)
 
     def run(self):
@@ -187,9 +185,7 @@ class Model(object):
         then returns a 2-D matrix of the final, collapsed state.
         """
         while not self.wavefunction.is_fully_collapsed():
-            print("in iteration")
             self.iterate()
-        print("after iteration")
         return self.wavefunction.get_all_collapsed()
 
     def iterate(self):
@@ -198,12 +194,9 @@ class Model(object):
         """
         # 1. Find the co-ordinates of minimum entropy
         co_ords = self.min_entropy_co_ords()
-        print(co_ords)
         x, y = co_ords
         # 2. Collapse the wavefunction at these co-ordinates
-        print("x, y", self.wavefunction.coefficients[x][y])
         self.wavefunction.collapse(co_ords)
-        print("x, y (after)", self.wavefunction.coefficients[x][y])
         # 3. Propagate the consequences of this collapse
         self.propagate(co_ords)
 
@@ -339,7 +332,7 @@ def parse_example_matrix(matrix):
 def make_edges_from_pairs(hpairs, vpairs):
     pairs = set()
     tiles = set()
-    keys = {"->": RIGHT, "<-": LEFT, "^": UP, "v": DOWN}
+    keys = {"->": RIGHT, "<-": LEFT, "^": DOWN, "v": UP}
     for x, y in hpairs:
         pairs.add((x, y, "->"))
         pairs.add((y, x, "<-"))
@@ -418,19 +411,41 @@ if __name__ == "__main__":
         ['C','B','B','C'],
         ['A','C','C','A'],
     ]
-
-    compatibilities, weights = parse_example_matrix(input_matrix)
+    input_matrix3 = """
+    AFBAFBAFBAFB
+    EGDCGEEGDCGE
+    DBGGGEEGGGAC
+    ACGGACDBGGDB
+    EGGAHFFJBGGE
+    DFFCEGGEDFFC
+    AFFBEGGEAFFB
+    EGGDJFFHCGGE
+    DBGGDBACGGAC
+    ACGGGEEGGGDB
+    EGABGEEGABGE
+    DFCDFCDFCDFC
+    """
+    input_matrix3 = [
+        list(line.strip())
+        for line in input_matrix3.split("\n")
+        if len(line.strip()) > 0
+    ]
     
+    compatibilities, weights = parse_example_matrix(input_matrix3)
     compatibility_oracle = CompatibilityOracle(compatibilities)
     model = Model((10, 50), weights, compatibility_oracle)
     output = model.run()
 
     colors = {
-        'L': colorama.Fore.GREEN,
-        'S': colorama.Fore.BLUE,
+        'A': colorama.Fore.GREEN,
+        'B': colorama.Fore.BLUE,
         'C': colorama.Fore.YELLOW,
-        'A': colorama.Fore.CYAN,
-        'B': colorama.Fore.MAGENTA,
+        'D': colorama.Fore.CYAN,
+        'E': colorama.Fore.MAGENTA,
+        'F': colorama.Fore.RED,
+        'G': colorama.Fore.MAGENTA,
+        'H': colorama.Fore.WHITE,
+        'J': colorama.Fore.MAGENTA,
     }
 
     render_colors(output, colors)
