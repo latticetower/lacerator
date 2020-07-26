@@ -7,9 +7,9 @@ from utils import *
 def show_home():
     return template('about')
 
-
+@route("/pattern-generator")
 @route('/pattern-generator/<h>/<w>')
-def generate_wfc(h, w):
+def generate_wfc(h=20, w=20):
     return template("templates/pattern-generator.html",
         svg=make_pattern_from_fragments(h, w))#'<b>Generator</b>'
     #return template('<b>Hello {{name}}</b>!', name=name)
