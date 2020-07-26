@@ -1,8 +1,7 @@
 from bottle import route, template, redirect, static_file, error, run
 import os
 
-from wfc import *
-
+from utils import *
 
 @route('/about')
 def show_home():
