@@ -1,0 +1,3 @@
+[submodule "svg_utils"]
+	path = svg_utils
+	url = https://github.com/btel/svg_utils.git
