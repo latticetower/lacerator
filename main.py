@@ -1,12 +1,32 @@
-from bottle import route, run, template
+from bottle import route, template, redirect, static_file, error, run
 import os
+
 from wfc import *
+
+
+@route('/about')
+def show_home():
+    return template('about')
+
 
 @route('/pattern-generator/<h>/<w>')
 def generate_wfc(h, w):
     return template("templates/pattern-generator.html",
         svg=make_pattern_from_fragments(h, w))#'<b>Generator</b>'
     #return template('<b>Hello {{name}}</b>!', name=name)
+
+@route('/css/<filename>')
+def send_css(filename):
+    return static_file(filename, root='static/css')
+
+@route('/assets/<filename>')
+def send_asset(filename):
+    return static_file(filename, root='static/svg')
+# TODO: check type
+
+@error(404)
+def error404(error):
+    return template('error', error_msg='404 error. Nothing to see here')
 
 
 @route('/simple-generator')
