@@ -3,9 +3,9 @@ import os
 
 from utils import *
 
-@route('/about')
-def show_home():
-    return template('about')
+# @route('/about')
+# def show_home():
+#     return template('about')
 
 @route("/pattern-generator")
 @route('/pattern-generator/<h>/<w>')
@@ -14,9 +14,6 @@ def generate_wfc(h=10, w=10):
         filename=make_pattern_from_fragments(h, w))#'<b>Generator</b>'
     #return template('<b>Hello {{name}}</b>!', name=name)
 
-@route('/css/<filename>')
-def send_css(filename):
-    return static_file(filename, root='static/css')
     
 @route('/images/<filename>')
 def send_css(filename):
@@ -41,7 +38,8 @@ def generate_wfc():
 
 @route('/')
 def index():
-    return template("templates/page.tpl", name=".")#'<b>Generator</b>'
+    return redirect("/pattern-generator")
+    #return template("templates/page.tpl", name=".")#'<b>Generator</b>'
     #return template('<b>Hello {{name}}</b>!', name=name)
 
 if os.environ.get('APP_LOCATION') == 'heroku':
