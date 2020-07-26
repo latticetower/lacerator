@@ -4,6 +4,7 @@ from svgutils.templates import VerticalLayout, ColumnLayout
 from PIL import Image
 import numpy as np
 import hashlib
+import os
 from wfc import *
 
 

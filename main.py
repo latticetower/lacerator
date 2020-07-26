@@ -17,6 +17,10 @@ def generate_wfc(h=10, w=10):
 @route('/css/<filename>')
 def send_css(filename):
     return static_file(filename, root='static/css')
+    
+@route('/images/<filename>')
+def send_css(filename):
+    return static_file(filename, root='images', mimetype='image/png')
 
 @route('/assets/<filename>')
 def send_asset(filename):
