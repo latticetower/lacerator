@@ -7,5 +7,7 @@ def index():
     return template("templates/page.tpl", name="Tanya")#'<b>Generator</b>'
     #return template('<b>Hello {{name}}</b>!', name=name)
 
-port = 8080 if len(sys.argv)<2 else sys.argv[1]
-run(host='localhost', port=port)
+if os.environ.get('APP_LOCATION') == 'heroku':
+    run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+else:
+    run(host='localhost', port=8080, debug=True)
