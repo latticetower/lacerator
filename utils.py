@@ -1,23 +1,15 @@
 from svgutils.transform import fromfile
 from svgutils.transform import SVGFigure, GroupElement
 from svgutils.templates import VerticalLayout, ColumnLayout
-
+from PIL import Image
 
 from wfc import *
 
 
 def get_fragment_vocab():
     vocab = {
-        "A": fromfile("assets/"),
-        #"B",
-        #"C",
-        #"D",
-        #"E",
-        #"F",
-        #"G",
-        #"H",
-        ##"I",
-        #"J"
+        x: Image.open(f"assets/{x}.png")
+        for x in "ABCDEFGHJ"
     }
     return vocab
     
