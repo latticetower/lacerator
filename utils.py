@@ -35,9 +35,9 @@ def make_pattern_from_fragments(h=10, w=10):
         for line in input_matrix3.split("\n")
         if len(line.strip()) > 0
     ]
-    compatibilities, weights = parse_example_matrix(input_matrix3)
+    compatibilities, weights, border_tiles = parse_example_matrix(input_matrix3)
     compatibility_oracle = CompatibilityOracle(compatibilities)
-    model = Model((h, w), weights, compatibility_oracle)
+    model = Model((h, w), weights, compatibility_oracle, border_tiles)
     output = model.run()
     h = len(output)
     w = len(output[0])

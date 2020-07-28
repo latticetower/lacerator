@@ -8,7 +8,7 @@ LEFT = (-1, 0)
 DOWN = (0, -1)
 RIGHT = (1, 0)
 DIRS = [UP, DOWN, LEFT, RIGHT]
-
+EMPTY_TILE = "G"
 
 class CompatibilityOracle(object):
 
@@ -32,7 +32,7 @@ class Wavefunction(object):
     """
 
     @staticmethod
-    def mk(size, weights):
+    def mk(size, weights, border_tiles):
         """Initialize a new Wavefunction for a grid of `size`,
         where the different tiles have overall weights `weights`.
 
@@ -40,11 +40,11 @@ class Wavefunction(object):
         size -- a 2-tuple of (width, height)
         weights -- a dict of tile -> weight of tile
         """
-        coefficients = Wavefunction.init_coefficients(size, weights.keys())
+        coefficients = Wavefunction.init_coefficients(size, weights.keys(), border_tiles)
         return Wavefunction(coefficients, weights)
 
     @staticmethod
-    def init_coefficients(size, tiles):
+    def init_coefficients(size, tiles, border_tiles):
         """Initializes a 2-D wavefunction matrix of coefficients.
         The matrix has size `size`, and each element of the matrix
         starts with all tiles as possible. No tile is forbidden yet.
@@ -62,13 +62,25 @@ class Wavefunction(object):
         A 2-D matrix in which each element is a set
         """
         coefficients = []
-
-        for x in range(size[0]):
+        tiles_ = list(border_tiles[UP]) + [EMPTY_TILE]
+        row = [ set(tiles_) for i in range(size[1]) ]
+        row[0] = (row[0] & border_tiles[LEFT]) | set([EMPTY_TILE])
+        row[-1] = (row[-1] & border_tiles[RIGHT]) | set([EMPTY_TILE])
+        coefficients.append(row)
+        for x in range(1, size[0] - 1):
             row = []
-            for y in range(size[1]):
-                row.append(set(tiles))
+            row.append(set(list(border_tiles[LEFT]) + [ EMPTY_TILE ]))
+            for y in range(1, size[1] - 1):
+                row.append(set([t for t in tiles if t != EMPTY_TILE ]))
+            row.append(set(list(border_tiles[RIGHT]) + [ EMPTY_TILE ]))
             coefficients.append(row)
+        
+        tiles_ = list(border_tiles[DOWN]) + [EMPTY_TILE]
+        row = [ set(tiles_) for i in range(size[1]) ]
+        row[0] = (row[0] & border_tiles[LEFT]) | set([EMPTY_TILE])
+        row[-1] = (row[-1] & border_tiles[RIGHT]) | set([EMPTY_TILE])
 
+        coefficients.append(row)
         return coefficients
 
     def __init__(self, coefficients, weights):
@@ -86,6 +98,10 @@ class Wavefunction(object):
         this method raises an exception.
         """
         opts = self.get(co_ords)
+        if len(opts) != 1:
+            #print(opts)
+            return EMPTY_TILE
+            #print(opts)
         assert(len(opts) == 1)
         return next(iter(opts))
 
@@ -155,9 +171,87 @@ class Wavefunction(object):
         #     if rnd < 0:
         #         chosen = tile
         #         break
-        chosen = np.random.choice(list(valid_weights.keys()))
+        chosen = np.random.choice(list(valid_weights.keys()),
+            p = list(valid_weights.values())
+        )
+        #print(valid_weights, chosen)
 
         self.coefficients[x][y] = set([chosen])
+        #return chosen
+        
+    def choose(self, co_ords):
+        """Collapses the wavefunction at `co_ords` to a single, definite
+        tile. The tile is chosen randomly from the remaining possible tiles
+        at `co_ords`, weighted according to the Wavefunction's global
+        `weights`.
+
+        This method mutates the Wavefunction, and does not return anything.
+        """
+        x, y = co_ords
+        opts = self.coefficients[x][y]
+        valid_weights = {tile: weight for tile, weight in self.weights.items() if tile in opts}
+
+        total_weights = sum(valid_weights.values())
+        # rnd = random.random() * total_weights
+        # 
+        # chosen = None
+        # for tile, weight in valid_weights.items():
+        #     rnd -= weight
+        #     if rnd < 0:
+        #         chosen = tile
+        #         break
+        chosen = np.random.choice(list(valid_weights.keys()))
+        #print(valid_weights, chosen)
+        return chosen
+
+    def try_to_collapse(self, co_ords, chosen, output_size, compatibility_oracle):
+        stack = [co_ords]
+        coefficients = [
+            [
+                x.copy()
+                for x in row
+            ]
+            for row in self.coefficients
+        ]
+        while len(stack) > 0:
+            cur_coords = stack.pop()
+            x, y = cur_coords
+            # Get the set of all possible tiles at the current location
+            cur_possible_tiles = coefficients[x][y]
+
+            # Iterate through each location immediately adjacent to the
+            # current location.
+            invalid = False
+            for d in valid_dirs(cur_coords, output_size):
+                other_coords = (cur_coords[0] + d[0], cur_coords[1] + d[1])
+
+                # Iterate through each possible tile in the adjacent location's
+                # wavefunction.
+                x1, y1 = other_coords
+                for other_tile in set(coefficients[x1][y1]):
+                    # Check whether the tile is compatible with any tile in
+                    # the current location's wavefunction.
+                    other_tile_is_possible = any([
+                        compatibility_oracle.check(cur_tile, other_tile, d) for cur_tile in cur_possible_tiles
+                    ])
+                    # If the tile is not compatible with any of the tiles in
+                    # the current location's wavefunction then it is impossible
+                    # for it to ever get chosen. We therefore remove it from
+                    # the other location's wavefunction.
+                    if not other_tile_is_possible:
+                        #self.wavefunction.constrain(other_coords, other_tile)
+                        if len(coefficients[x1][y1]) < 1:
+                            invalid = True
+                        coefficients[x1][y1].remove(other_tile)
+                        
+                        stack.append(other_coords)
+        if invalid:
+            if len(self.coefficients[x][y]) > 1:
+                self.coefficients[x][y].remove(chosen)
+        else:
+            self.coefficients = coefficients
+            self.coefficients[x][y] = set([chosen])
+
 
     def constrain(self, co_ords, forbidden_tile):
         """Removes `forbidden_tile` from the list of possible tiles
@@ -175,10 +269,10 @@ class Model(object):
     Wavefunction Collapse algorithm.
     """
 
-    def __init__(self, output_size, weights, compatibility_oracle):
+    def __init__(self, output_size, weights, compatibility_oracle, border_tiles):
         self.output_size = output_size
         self.compatibility_oracle = compatibility_oracle
-        self.wavefunction = Wavefunction.mk(output_size, weights)
+        self.wavefunction = Wavefunction.mk(output_size, weights, border_tiles)
 
     def run(self):
         """Collapses the Wavefunction until it is fully collapsed,
@@ -194,13 +288,18 @@ class Model(object):
         """
         # 1. Find the co-ordinates of minimum entropy
         co_ords = self.min_entropy_co_ords()
+        #print("coords", co_ords)
+        #total = np.sum([len(x)for row in self.wavefunction.coefficients for x in row])
+        #print(total)
         x, y = co_ords
         # 2. Collapse the wavefunction at these co-ordinates
-        self.wavefunction.collapse(co_ords)
+        chosen = self.wavefunction.choose(co_ords)
         # 3. Propagate the consequences of this collapse
-        self.propagate(co_ords)
+        #self.propagate(co_ords, chosen)
+        self.wavefunction.try_to_collapse(co_ords, chosen,
+            self.output_size, self.compatibility_oracle)
 
-    def propagate(self, co_ords):
+    def propagate(self, co_ords, chosen):
         """Propagates the consequences of the wavefunction at `co_ords`
         collapsing. If the wavefunction at (x,y) collapses to a fixed tile,
         then some tiles may not longer be theoretically possible at
@@ -271,7 +370,7 @@ def render_colors(matrix, colors):
     for row in matrix:
         output_row = []
         for val in row:
-            color = colors[val]
+            color = colors.get(val, colorama.Fore.BLACK)
             output_row.append(color + val + colorama.Style.RESET_ALL)
 
         print("".join(output_row))
@@ -310,6 +409,8 @@ def parse_example_matrix(matrix):
         the form (tile1, tile2, direction)
     * A dict of weights of the form tile -> weight
     """
+    if isinstance(matrix, list):
+        matrix = np.asarray(matrix)
     compatibilities = set()
     matrix_width = len(matrix)
     matrix_height = len(matrix[0])
@@ -325,8 +426,15 @@ def parse_example_matrix(matrix):
             for d in valid_dirs((x,y), (matrix_width, matrix_height)):
                 other_tile = matrix[x+d[0]][y+d[1]]
                 compatibilities.add((cur_tile, other_tile, d))
+    print(matrix[:, 0])
+    border_tiles = {
+        UP: set(matrix[0]),
+        DOWN: set(matrix[-1]),
+        LEFT: set(matrix[:, 0]),
+        RIGHT: set(matrix[:, -1])
+    }
 
-    return compatibilities, weights
+    return compatibilities, weights, border_tiles
 
 # custom
 def make_edges_from_pairs(hpairs, vpairs):
@@ -430,10 +538,11 @@ if __name__ == "__main__":
         for line in input_matrix3.split("\n")
         if len(line.strip()) > 0
     ]
+    input_matrix3 = np.asarray(input_matrix3)
     
-    compatibilities, weights = parse_example_matrix(input_matrix3)
+    compatibilities, weights, border_tiles = parse_example_matrix(input_matrix3)
     compatibility_oracle = CompatibilityOracle(compatibilities)
-    model = Model((10, 50), weights, compatibility_oracle)
+    model = Model((10, 50), weights, compatibility_oracle, border_tiles)
     output = model.run()
 
     colors = {
