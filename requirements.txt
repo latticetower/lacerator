@@ -1,6 +1,6 @@
-bottle==0.12.19
+bottle>=0.12.19
 numpy>=1.21
-gunicorn==19.9.0
-Pillow==9.0.0
+gunicorn>=19.9.0
+Pillow>=9.0.0
 
 -e git://github.com/btel/svg_utils.git#egg=svg_utils
