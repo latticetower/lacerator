@@ -1,5 +1,5 @@
 bottle==0.12.19
-numpy==1.18.1
+numpy>=1.21
 gunicorn==19.9.0
 Pillow==9.0.0
 
